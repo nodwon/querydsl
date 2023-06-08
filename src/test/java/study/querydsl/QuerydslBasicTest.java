@@ -18,6 +18,7 @@ import jakarta.persistence.PersistenceUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberDto;
 import study.querydsl.dto.QMemberDto;
@@ -474,4 +475,42 @@ public class QuerydslBasicTest {
 //    private BooleanExpression isServiceable(String usernameCond, Integer ageCond){
 //        return isVaild(usernameCond).and(DatateBetweenIn(ageCond));
 //    }
+
+    @Test
+    @Commit
+    public void bulkUpdate() throws Exception {
+        //member 1 = 10 -> 비회원
+        //member 2 = 20 -> 비회원
+        //member 3 = 30 -> 유지
+        //member 4  = 40 -> 유지
+        // 영속성 컨텍스에 올라가있는데  영속성 컨텍스트에 있는 엔티티를 무시하고 실행되기 때문에 배치 쿼리를
+        //실행하고 나면 영속성 컨텍스트를 초기화 하는 것이 안전하다.
+        queryFactory
+                .update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+        em.flush();
+        em.clear();
+        //e데이터를 맞추기위해 초기화 시키면 영속속 컨텍ㅅ트와 같아짐
+        List<Member> result = queryFactory.selectFrom(member).fetch();
+        for(Member member1 : result){
+            System.out.println("member1="+member1);
+        }
+
+    }
+    @Test
+    public void bulkAdd() throws Exception {
+        long count = queryFactory
+                .update(member)
+                .set(member.age, member.age.add(1)) // multiply(2) 곱하기
+                .execute();
+    }
+    @Test
+    public void bulkDelete() throws Exception {
+        long count = queryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+    }
 }
