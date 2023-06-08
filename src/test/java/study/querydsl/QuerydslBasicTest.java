@@ -2,9 +2,11 @@ package study.querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.Wildcard;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
@@ -15,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.QMemberDto;
+import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.Team;
@@ -381,6 +385,36 @@ public class QuerydslBasicTest {
             System.out.println("memberDto:" + memberDto);
         }
     }
+    @Test
+    public void findDtoUserDto() throws Exception {
+        QMember memberSub = new QMember("memberSub");
+        List<UserDto> result = queryFactory
+                .select(Projections.fields(UserDto.class, // userdto에서 name으로 적어서 매칭이 안되서 null 값이 나온다.
+                        member.username.as("name"),
+                        //이름이 없는경우
+                        ExpressionUtils.as(JPAExpressions
+                                        .select(memberSub.age.max())
+                                        .from(memberSub), "age")
+                ))
+                        //member.age))
+                .from(member)
+                .fetch();
+        for(UserDto userDto : result){
+            System.out.println("memberDto:" + userDto);
+        }
+    }
+    @Test
+    public void findDtoByQueryProjection() throws Exception {
+        List<MemberDto> result = queryFactory
+                .select(new QMemberDto(member.username, member.age))
+                .from(member)
+                .fetch();
+        //Constructor 실행은 되는데 런타임 에러가 나옴
+        //컴파일 오류로 할수 있다
+        //방법은 컴파일러로 타입을 체크할 수 있으므로 가장 안전한 방법이다.
+        // 다만 DTO에 QueryDSL 어노테이션을 유지해야 하는 점과 DTO까지 Q 파일을 생성해야 하는 단점이 있다.
+    }
 
+    //동적쿼리 해결할때
 
 }
